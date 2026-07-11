@@ -1,17 +1,90 @@
 package org.example;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import org.lwjgl.Version;
+import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.system.MemoryStack;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+import java.nio.IntBuffer;
+
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.glfw.Callbacks.*;
+import static org.lwjgl.system.MemoryUtil.*;
+
+public class Main {
+    private long window;
+
+    public void run() {
+        System.out.println("Hello LWJGL " + Version.getVersion() + "!");
+
+        init();
+        loop();
+
+        glfwFreeCallbacks(window);
+        glfwDestroyWindow(window);
+
+        glfwTerminate();
+        glfwSetErrorCallback(null).free();
+    }
+
+    private void init() {
+        GLFWErrorCallback.createPrint(System.err).set();
+
+        if (!glfwInit())
+            throw new IllegalStateException("Unable to initialize GLFW");
+
+        glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+        window = glfwCreateWindow(300, 300, "Hello World!", NULL, NULL);
+        if (window == NULL)
+            throw new RuntimeException("Failed to create the GLFW window");
+
+        glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+                glfwSetWindowShouldClose(window, true);
+        });
+
+        try (MemoryStack stack = stackPush()) {
+            IntBuffer pWidth = stack.mallocInt(1);
+            IntBuffer pHeight = stack.mallocInt(1);
+
+            glfwGetWindowSize(window, pWidth, pHeight);
+
+            GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+            glfwSetWindowPos(
+                    window,
+                    (vidmode.width() - pWidth.get(0)) / 2,
+                    (vidmode.height() - pHeight.get(0)) / 2
+            );
         }
+
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+
+        glfwShowWindow(window);
+    }
+
+    private void loop() {
+        GL.createCapabilities();
+
+        glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+
+        while (!glfwWindowShouldClose(window)) {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glfwSwapBuffers(window);
+
+            glfwPollEvents();
+        }
+    }
+
+    static void main(String[] args) {
+        new Main().run();
     }
 }
