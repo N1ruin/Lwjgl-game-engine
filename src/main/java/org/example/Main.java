@@ -1,10 +1,13 @@
 package org.example;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.IntBuffer;
 
@@ -16,6 +19,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class Main {
     private long window;
+    private static Logger log = LogManager.getLogger(Main.class);
 
     public void run() {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -27,8 +31,24 @@ public class Main {
         glfwDestroyWindow(window);
 
         glfwTerminate();
-        glfwSetErrorCallback(null).free();
-    }
+        GLFWErrorCallback.create((error, description) -> {
+            String msg = "GLFW ERROR [" + error + "]: " +
+                         MemoryUtil.memUTF8(description);
+
+            switch (error) {
+                case GLFW_NOT_INITIALIZED, GLFW_NO_CURRENT_CONTEXT,
+                     GLFW_INVALID_ENUM, GLFW_INVALID_VALUE ->
+                        log.error(msg);
+                case GLFW_OUT_OF_MEMORY ->
+                        log.fatal(msg);
+                case GLFW_API_UNAVAILABLE, GLFW_VERSION_UNAVAILABLE ->
+                        log.warn(msg);
+                case GLFW_PLATFORM_ERROR ->
+                        log.error(msg);
+                default ->
+                        log.debug(msg);
+            }
+        }).set();    }
 
     private void init() {
         GLFWErrorCallback.createPrint(System.err).set();
